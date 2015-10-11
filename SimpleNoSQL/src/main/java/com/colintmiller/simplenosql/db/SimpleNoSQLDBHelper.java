@@ -51,7 +51,13 @@ public class SimpleNoSQLDBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(SQL_CREATE_ENTRIES);
+        db.beginTransaction();
+        try {
+            db.execSQL(SQL_CREATE_ENTRIES);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
     }
 
     @Override
@@ -63,26 +69,44 @@ public class SimpleNoSQLDBHelper extends SQLiteOpenHelper {
 
     public <T> void saveEntity(NoSQLEntity<T> entity) {
         SQLiteDatabase db = getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(EntityEntry.COLUMN_NAME_BUCKET_ID, entity.getBucket());
-        values.put(EntityEntry.COLUMN_NAME_ENTITY_ID, entity.getId());
-        values.put(EntityEntry.COLUMN_NAME_DATA, serializer.serialize(entity.getData()));
-        db.insertWithOnConflict(EntityEntry.TABLE_NAME, EntityEntry.COLUMN_NAME_BUCKET_ID, values, SQLiteDatabase.CONFLICT_REPLACE);
-        db.close();
+        db.beginTransaction();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(EntityEntry.COLUMN_NAME_BUCKET_ID, entity.getBucket());
+            values.put(EntityEntry.COLUMN_NAME_ENTITY_ID, entity.getId());
+            values.put(EntityEntry.COLUMN_NAME_DATA, serializer.serialize(entity.getData()));
+            db.insertWithOnConflict(EntityEntry.TABLE_NAME, EntityEntry.COLUMN_NAME_BUCKET_ID, values, SQLiteDatabase.CONFLICT_REPLACE);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
     }
 
     public void deleteEntity(String bucket, String entityId) {
         SQLiteDatabase db = getWritableDatabase();
-        String[] args = {bucket, entityId};
-        db.delete(EntityEntry.TABLE_NAME, EntityEntry.COLUMN_NAME_BUCKET_ID + "=? and " + EntityEntry.COLUMN_NAME_ENTITY_ID + "=?", args);
-        db.close();
+        db.beginTransaction();
+        try {
+            String[] args = {bucket, entityId};
+            db.delete(EntityEntry.TABLE_NAME, EntityEntry.COLUMN_NAME_BUCKET_ID + "=? and " + EntityEntry.COLUMN_NAME_ENTITY_ID + "=?", args);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
     }
 
     public void deleteBucket(String bucket) {
         SQLiteDatabase db = getWritableDatabase();
-        String[] args = {bucket};
-        db.delete(EntityEntry.TABLE_NAME, EntityEntry.COLUMN_NAME_BUCKET_ID + "=?", args);
-        db.close();
+        db.beginTransaction();
+        try {
+            String[] args = {bucket};
+            db.delete(EntityEntry.TABLE_NAME, EntityEntry.COLUMN_NAME_BUCKET_ID + "=?", args);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
     }
 
     public <T> List<NoSQLEntity<T>> getEntities(String bucket, String entityId, Class<T> clazz, DataFilter<T> filter) {
